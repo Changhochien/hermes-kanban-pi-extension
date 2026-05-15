@@ -11,6 +11,7 @@ export function registerKanbanCompleteTool(pi: ExtensionAPI): void {
     label: "Kanban Complete",
     description: `Mark a task as done with a summary of the work completed.
 The summary is added as a comment and can include metadata about outcomes.
+If called without task_id, uses HERMES_KANBAN_TASK (when running as Hermes worker).
 
 Use this to:
 - Mark work as finished
@@ -28,7 +29,10 @@ Use this to:
         type: "string" as const,
         description: "Board name (defaults to current board)",
       }.optional(),
-      task_id: { type: "string" as const, description: "Task ID (t_<hex8>)" },
+      task_id: {
+        type: "string" as const,
+        description: "Task ID (t_<hex8>). If not provided, uses HERMES_KANBAN_TASK env var.",
+      }.optional(),
       summary: {
         type: "string" as const,
         description: "Summary of work completed",
@@ -47,6 +51,20 @@ Use this to:
       try {
         const service = getService(params.board);
 
+        // Use HERMES_KANBAN_TASK if no task_id provided
+        const taskId = params.task_id || process.env.HERMES_KANBAN_TASK;
+        if (!taskId) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: "Error: No task_id provided and HERMES_KANBAN_TASK not set.",
+              },
+            ],
+            details: { tool: "kanban_complete", error: "No task ID" },
+          };
+        }
+
         if (!(await service.isWriteAvailable())) {
           return {
             content: [
@@ -60,7 +78,7 @@ Use this to:
         }
 
         const result = await service.completeTask({
-          taskId: params.task_id,
+          taskId,
           summary: params.summary,
           result: params.result,
           createdCards: params.created_cards,
@@ -77,13 +95,13 @@ Use this to:
           content: [
             {
               type: "text" as const,
-              text: `Task ${params.task_id} marked as done.${params.summary ? `\n\nSummary: ${params.summary}` : ""}`,
+              text: `Task ${taskId} marked as done.${params.summary ? `\n\nSummary: ${params.summary}` : ""}`,
             },
           ],
           details: {
             tool: "kanban_complete",
             success: true,
-            task_id: params.task_id,
+            task_id: taskId,
             board: service.board,
           },
         };

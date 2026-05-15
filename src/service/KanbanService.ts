@@ -241,26 +241,8 @@ export class KanbanService {
   /**
    * Send a heartbeat for a task (prevents stale detection)
    */
-  async heartbeat(taskId?: string): Promise<Result<{ taskId: string }>> {
-    const tid = taskId || process.env.HERMES_KANBAN_TASK;
-    if (!tid) {
-      return {
-        ok: false,
-        error: "No task ID provided and HERMES_KANBAN_TASK not set",
-        code: "VALIDATION_ERROR",
-      };
-    }
-
-    const result = await this.writeRepo.runCommand(["heartbeat", tid]);
-    if (!result.ok) {
-      return {
-        ok: false,
-        error: result.stderr || "Failed to send heartbeat",
-        code: "CLI_ERROR",
-      };
-    }
-
-    return { ok: true, data: { taskId: tid } };
+  async heartbeat(taskId: string): Promise<Result<{ taskId: string }>> {
+    return this.writeRepo.heartbeatTask(taskId);
   }
 
   /**
@@ -285,21 +267,7 @@ export class KanbanService {
       };
     }
 
-    const args = ["reclaim", taskId];
-    if (reason) {
-      args.push("--reason", reason);
-    }
-
-    const result = await this.writeRepo.runCommand(args);
-    if (!result.ok) {
-      return {
-        ok: false,
-        error: result.stderr || "Failed to reclaim task",
-        code: "CLI_ERROR",
-      };
-    }
-
-    return { ok: true };
+    return this.writeRepo.reclaimTask(taskId, reason);
   }
 
   /**

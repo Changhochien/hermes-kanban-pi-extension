@@ -8,8 +8,8 @@
  * - pi as Hermes worker (auto-context injection, completion detection)
  */
 
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { getService, closeAllServices, resolveDefaultBoard, switchBoard } from "./service/KanbanServiceFactory.js";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { getService, closeAllServices, resolveDefaultBoard } from "./service/KanbanServiceFactory.js";
 
 // --- Tools ---
 import { registerKanbanListTool } from "./tools/list.js";
@@ -46,46 +46,46 @@ let cachedWorkerContext: string | null = null;
 /**
  * Register all kanban tools with pi
  */
-function registerTools(ctx: ExtensionContext): void {
+function registerTools(pi: ExtensionAPI): void {
   // Read tools
-  registerKanbanListTool(ctx);
-  registerKanbanBoardTool(ctx);
-  registerKanbanShowTool(ctx);
-  registerKanbanStatsTool(ctx);
-  registerKanbanDiagnosticsTool(ctx);
+  registerKanbanListTool(pi);
+  registerKanbanBoardTool(pi);
+  registerKanbanShowTool(pi);
+  registerKanbanStatsTool(pi);
+  registerKanbanDiagnosticsTool(pi);
 
   // Write tools
-  registerKanbanCreateTool(ctx);
-  registerKanbanCompleteTool(ctx);
-  registerKanbanBlockTool(ctx);
-  registerKanbanCommentTool(ctx);
-  registerKanbanLinkTool(ctx);
+  registerKanbanCreateTool(pi);
+  registerKanbanCompleteTool(pi);
+  registerKanbanBlockTool(pi);
+  registerKanbanCommentTool(pi);
+  registerKanbanLinkTool(pi);
 
   // v2 tools
-  registerHeartbeatTool(ctx);
-  registerReclaimTool(ctx);
-  registerBoardsTool(ctx);
-  registerWorkerContextTool(ctx);
+  registerHeartbeatTool(pi);
+  registerReclaimTool(pi);
+  registerBoardsTool(pi);
+  registerWorkerContextTool(pi);
 }
 
 /**
  * Register all commands with pi
  */
-function registerCommands(ctx: ExtensionContext): void {
-  ctx.registerCommand(kanbanBoardCommand);
-  ctx.registerCommand(kanbanStatsCommand);
-  ctx.registerCommand(kanbanWebCommand);
-  ctx.registerCommand(kanbanSwitchCommand);
+function registerCommands(pi: ExtensionAPI): void {
+  pi.registerCommand(kanbanBoardCommand);
+  pi.registerCommand(kanbanStatsCommand);
+  pi.registerCommand(kanbanWebCommand);
+  pi.registerCommand(kanbanSwitchCommand);
 }
 
 /**
  * Extension entry point
  */
-export default function registerExtension(ctx: ExtensionContext): void {
+export default function registerExtension(pi: ExtensionAPI): void {
   try {
     // Register tools and commands
-    registerTools(ctx);
-    registerCommands(ctx);
+    registerTools(pi);
+    registerCommands(pi);
 
     // Log successful registration
     console.log(
@@ -95,7 +95,7 @@ export default function registerExtension(ctx: ExtensionContext): void {
     // --- Event hooks ---
 
     // session_start: Initialize and cache worker context if running as worker
-    ctx.on("session_start", async () => {
+    pi.on("session_start", async (_event, _ctx) => {
       console.log("[hermes-kanban] Session starting...");
 
       // Initialize service for default board
@@ -114,7 +114,7 @@ export default function registerExtension(ctx: ExtensionContext): void {
     });
 
     // before_agent_start: Inject worker context into system prompt
-    ctx.on("before_agent_start", (event) => {
+    pi.on("before_agent_start", (event) => {
       if (cachedWorkerContext) {
         // Inject worker context into the system prompt
         const currentPrompt = event.systemPrompt || "";
@@ -124,7 +124,7 @@ export default function registerExtension(ctx: ExtensionContext): void {
     });
 
     // turn_end: Detect completion signals
-    ctx.on("turn_end", async (event) => {
+    pi.on("turn_end", async (event) => {
       // Skip if no worker task
       if (!process.env.HERMES_KANBAN_TASK) return;
 
@@ -151,12 +151,12 @@ export default function registerExtension(ctx: ExtensionContext): void {
     });
 
     // agent_end: Cleanup (runs after agent completes)
-    ctx.on("agent_end", () => {
+    pi.on("agent_end", () => {
       console.log("[hermes-kanban] Agent ending...");
     });
 
     // session_shutdown: Close all connections
-    ctx.on("session_shutdown", () => {
+    pi.on("session_shutdown", () => {
       console.log("[hermes-kanban] Shutting down, closing connections...");
       closeAllServices();
       cachedWorkerContext = null;

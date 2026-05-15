@@ -8,9 +8,8 @@ import { getService, getActiveBoards, switchBoard } from "../service/KanbanServi
 export const kanbanSwitchCommand: Command = {
   name: "kanban-switch",
   description: "Switch the active kanban board",
-  async execute(ctx) {
-    const args = ctx.arguments as { board?: string };
-    const board = args?.board?.trim();
+  async execute(args, ctx) {
+    const board = (args || "").trim();
 
     // Get available boards
     const service = getService();

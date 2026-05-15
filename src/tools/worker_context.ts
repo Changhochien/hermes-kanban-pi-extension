@@ -2,12 +2,12 @@
  * kanban_worker_context — Get the current task context when running as a Hermes worker
  */
 
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getService } from "../service/KanbanServiceFactory.js";
 import { truncateOutput } from "../utils/truncate.js";
 
-export default function registerWorkerContextTool(ctx: ExtensionContext): void {
-  ctx.registerTool({
+export default function registerWorkerContextTool(pi: ExtensionAPI): void {
+  pi.registerTool({
     name: "kanban_worker_context",
     description:
       "Get the current task context when running as a Hermes worker. " +

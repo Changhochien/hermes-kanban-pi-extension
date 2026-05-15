@@ -120,7 +120,7 @@ export class WriteRepo {
    * Run a hermes kanban command via CLI
    * Uses execFile (not exec) to avoid shell injection
    */
-  async runCommand(args: string[]): Promise<CliResult> {
+  private async runCommand(args: string[]): Promise<CliResult> {
     const hermesPath = await this.ensureHermesPath();
     const fullArgs = ["kanban", ...args];
 
@@ -487,6 +487,41 @@ export class WriteRepo {
       };
     }
 
+    return { ok: true };
+  }
+
+  /**
+   * Send heartbeat for a task (prevents stale detection)
+   */
+  async heartbeatTask(taskId: string): Promise<Result<{ taskId: string }>> {
+    const result = await this.runCommand(["heartbeat", taskId]);
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: result.stderr || "Failed to send heartbeat",
+        code: KanbanErrorCode.CLI_ERROR,
+      };
+    }
+    return { ok: true, data: { taskId } };
+  }
+
+  /**
+   * Reclaim a stuck task
+   */
+  async reclaimTask(taskId: string, reason?: string): Promise<Result> {
+    const args = ["reclaim", taskId];
+    if (reason) {
+      args.push("--reason", reason);
+    }
+
+    const result = await this.runCommand(args);
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: result.stderr || "Failed to reclaim task",
+        code: KanbanErrorCode.CLI_ERROR,
+      };
+    }
     return { ok: true };
   }
 }

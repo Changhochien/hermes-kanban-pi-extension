@@ -2,17 +2,21 @@
  * kanban_reclaim — Take over a stuck task from another worker
  */
 
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getService } from "../service/KanbanServiceFactory.js";
 
-export default function registerReclaimTool(ctx: ExtensionContext): void {
-  ctx.registerTool({
+export default function registerReclaimTool(pi: ExtensionAPI): void {
+  pi.registerTool({
     name: "kanban_reclaim",
     description:
       "Reclaim a task that another worker abandoned or left stuck. " +
       "Useful when kanban_diagnostics shows a stale running task and you want to take it over. " +
       "The task must be in 'running' status to be reclaimed.",
     parameters: {
+      board: {
+        type: "string" as const,
+        description: "Board name (defaults to current board)",
+      }.optional(),
       task_id: {
         type: "string" as const,
         description: "Task ID to reclaim",

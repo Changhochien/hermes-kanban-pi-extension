@@ -2,11 +2,11 @@
  * kanban_boards — List all available kanban boards
  */
 
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getService } from "../service/KanbanServiceFactory.js";
 
-export default function registerBoardsTool(ctx: ExtensionContext): void {
-  ctx.registerTool({
+export default function registerBoardsTool(pi: ExtensionAPI): void {
+  pi.registerTool({
     name: "kanban_boards",
     description:
       "List all available Hermes Kanban boards. " +

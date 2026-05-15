@@ -2,18 +2,21 @@
  * kanban_heartbeat — Send worker heartbeat to prevent stale detection
  */
 
-import { StringEnum } from "@earendil-works/pi-ai";
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getService } from "../service/KanbanServiceFactory.js";
 
-export default function registerHeartbeatTool(ctx: ExtensionContext): void {
-  ctx.registerTool({
+export default function registerHeartbeatTool(pi: ExtensionAPI): void {
+  pi.registerTool({
     name: "kanban_heartbeat",
     description:
       "Send a heartbeat ping for a running task to prevent it from being marked as stale. " +
       "Use during long-running operations to keep the task active. " +
       "If no task_id is provided, uses the HERMES_KANBAN_TASK environment variable.",
     parameters: {
+      board: {
+        type: "string" as const,
+        description: "Board name (defaults to current board)",
+      }.optional(),
       task_id: {
         type: "string" as const,
         description: "Task ID to send heartbeat for (optional, uses HERMES_KANBAN_TASK if not set)",
@@ -23,7 +26,21 @@ export default function registerHeartbeatTool(ctx: ExtensionContext): void {
       try {
         const service = getService(params.board);
 
-        const result = await service.heartbeat(params.task_id);
+        // Use HERMES_KANBAN_TASK if no task_id provided
+        const taskId = params.task_id || process.env.HERMES_KANBAN_TASK;
+        if (!taskId) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: "Error: No task_id provided and HERMES_KANBAN_TASK not set.",
+              },
+            ],
+            details: { tool: "kanban_heartbeat", error: "No task ID" },
+          };
+        }
+
+        const result = await service.heartbeat(taskId);
 
         if (!result.ok) {
           return {
