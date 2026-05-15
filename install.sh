@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 #
 # hermes-kanban-pi-extension installer
-# One-liner: curl -sL https://raw.githubusercontent.com/YOUR_USER/hermes-kanban-pi-extension/main/install.sh | bash
+#
+# Usage:
+#   curl -sL https://raw.githubusercontent.com/YOUR_USER/hermes-kanban-pi-extension/main/install.sh | bash
 #
 
 set -e
 
+REPO="${REPO:-YOUR_USER/hermes-kanban-pi-extension}"
 EXTENSION_DIR="${HOME}/.pi/agent/extensions/hermes-kanban"
 
 echo "📋 Installing hermes-kanban-pi-extension..."
@@ -18,7 +21,7 @@ if [ -d "$EXTENSION_DIR/.git" ]; then
 else
     echo "⬇️  Cloning extension to $EXTENSION_DIR..."
     rm -rf "$EXTENSION_DIR"
-    git clone https://github.com/YOUR_USER/hermes-kanban-pi-extension.git "$EXTENSION_DIR"
+    git clone "https://github.com/${REPO}.git" "$EXTENSION_DIR"
     cd "$EXTENSION_DIR"
 fi
 
@@ -30,6 +33,7 @@ npm install
 echo "🔨 Building TypeScript..."
 npm run build
 
+echo ""
 echo "✅ hermes-kanban-pi-extension installed!"
 echo ""
 echo "Restart pi agent to load the extension."
