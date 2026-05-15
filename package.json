@@ -2,8 +2,7 @@
   "name": "@hermes/pi-kanban",
   "version": "2.1.0",
   "description": "Pi agent extension for Hermes multi-agent Kanban board integration. Supports multi-board, worker context injection, and health tools.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "src/index.ts",
   "type": "module",
   "keywords": [
     "pi-extension",
@@ -13,7 +12,7 @@
     "multi-agent"
   ],
   "pi": {
-    "extensions": ["./dist/index.js"],
+    "extensions": ["./src/index.ts"],
     "skills": ["./skills"]
   },
   "scripts": {
@@ -25,8 +24,6 @@
     "better-sqlite3": "^11.0.0"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "workspace:*",
-    "@earendil-works/pi-ai": "workspace:*",
     "@types/better-sqlite3": "^7.6.0",
     "typescript": "^5.4.0"
   },
