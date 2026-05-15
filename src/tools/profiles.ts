@@ -9,6 +9,15 @@ import { getService } from "../service/KanbanServiceFactory.js";
 
 const execFileAsync = promisify(execFile);
 
+interface HermesProfile {
+  name: string;
+  model: string;
+  gateway: string;
+  alias: string;
+  distribution: string;
+  is_default: boolean;
+}
+
 export default function registerProfilesTool(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "kanban_profiles",
@@ -29,28 +38,26 @@ export default function registerProfilesTool(pi: ExtensionAPI): void {
 
         // Try hermes profile list first
         try {
-          const { stdout } = await execFileAsync("hermes", ["profile", "list", "--json"], {
+          const { stdout } = await execFileAsync("hermes", ["profile", "list"], {
             timeout: 10000,
           });
 
-          // Parse JSON output
-          const profiles = JSON.parse(stdout);
+          // Parse tabular output
+          const profiles = parseHermesProfileList(stdout);
           let output = `**${profiles.length} Hermes profile(s) found**\n\n`;
 
           for (const profile of profiles) {
             const marker = profile.is_default ? " (default)" : "";
             output += `## ${profile.name}${marker}\n`;
-            output += `- Path: ${profile.path}\n`;
             output += `- Model: ${profile.model || "unknown"}\n`;
-            output += `- Provider: ${profile.provider || "unknown"}\n`;
-            output += `- Skills: ${profile.skill_count || 0}\n`;
-            if (profile.gateway_running) {
-              output += `- Gateway: running\n`;
-            }
+            output += `- Gateway: ${profile.gateway || "unknown"}\n`;
+            output += `- Alias: ${profile.alias || "—"}\n`;
+            output += `- Distribution: ${profile.distribution || "—"}\n`;
             output += "\n";
           }
 
-          output += "Use these profile names as the `assignee` in kanban_create.";
+          output += "Use these profile names as the `assignee` in kanban_create.\n";
+          output += "Example: kanban_create(title=\"Task\", assignee=\"researcher\")";
 
           return {
             content: [{ type: "text" as const, text: output }],
@@ -100,4 +107,40 @@ export default function registerProfilesTool(pi: ExtensionAPI): void {
       }
     },
   });
+}
+
+/**
+ * Parse hermes profile list tabular output
+ */
+function parseHermesProfileList(output: string): HermesProfile[] {
+  const profiles: HermesProfile[] = [];
+  const lines = output.split("\n");
+
+  // Skip header lines (first 2 lines are header)
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line || line.startsWith("─") || line.startsWith("Profile")) continue;
+
+    // Parse tabular format: ◆ name   model   gateway   alias   distribution
+    // Look for the name at the start (may have ◆ for default)
+    const match = line.match(/^◆?\s*(\S+)\s+(.+)$/);
+    if (match) {
+      const name = match[1];
+      const rest = match[2];
+
+      // Split remaining by 2+ spaces
+      const parts = rest.split(/\s{2,}/).map((s) => s.trim());
+
+      profiles.push({
+        name,
+        model: parts[0] || "",
+        gateway: parts[1] || "",
+        alias: parts[2] || "",
+        distribution: parts[3] || "",
+        is_default: line.startsWith("◆"),
+      });
+    }
+  }
+
+  return profiles;
 }
