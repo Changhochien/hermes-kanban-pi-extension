@@ -27,10 +27,6 @@
     "@types/better-sqlite3": "^7.6.0",
     "typescript": "^5.4.0"
   },
-  "peerDependencies": {
-    "@earendil-works/pi-coding-agent": ">=1.0.0",
-    "@earendil-works/pi-ai": ">=1.0.0"
-  },
   "engines": {
     "node": ">=18.0.0",
     "pi": ">=1.0.0"
