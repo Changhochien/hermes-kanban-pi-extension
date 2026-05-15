@@ -44,6 +44,24 @@ const COMPLETION_SIGNALS = [
 let cachedWorkerContext: string | null = null;
 
 /**
+ * Extract text content from a message
+ */
+function extractMessageText(message: { content?: Array<{ type?: string; text?: string }> }): string {
+  if (!message.content) return "";
+  return message.content
+    .filter((c) => c.type === "text")
+    .map((c) => c.text || "")
+    .join("");
+}
+
+/**
+ * Check if a tool was called in this turn
+ */
+function wasToolCalled(toolResults: Array<{ toolCallId?: string; toolName?: string }>, toolName: string): boolean {
+  return toolResults.some((r) => r.toolName === toolName);
+}
+
+/**
  * Register all kanban tools with pi
  */
 function registerTools(pi: ExtensionAPI): void {
@@ -69,13 +87,52 @@ function registerTools(pi: ExtensionAPI): void {
 }
 
 /**
- * Register all commands with pi
+ * Register all commands with pi (two-arg form)
  */
 function registerCommands(pi: ExtensionAPI): void {
-  pi.registerCommand(kanbanBoardCommand);
-  pi.registerCommand(kanbanStatsCommand);
-  pi.registerCommand(kanbanWebCommand);
-  pi.registerCommand(kanbanSwitchCommand);
+  // kanban-board command
+  pi.registerCommand("kanban-board", {
+    description: kanbanBoardCommand.description,
+    handler: async (args, ctx) => {
+      try {
+        const service = getService();
+        const result = service.getBoard();
+        const output = service.formatBoard(result);
+        await ctx.ui.notify(output, "info");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        await ctx.ui.notify(`Error: ${message}`, "error");
+      }
+    },
+  });
+
+  // kanban-stats command
+  pi.registerCommand("kanban-stats", {
+    description: kanbanStatsCommand.description,
+    handler: async (args, ctx) => {
+      try {
+        const service = getService();
+        const stats = service.getStats();
+        const output = service.formatStats(stats);
+        await ctx.ui.notify(output, "info");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        await ctx.ui.notify(`Error: ${message}`, "error");
+      }
+    },
+  });
+
+  // kanban-web command
+  pi.registerCommand("kanban-web", {
+    description: kanbanWebCommand.description,
+    handler: kanbanWebCommand.execute,
+  });
+
+  // kanban-switch command
+  pi.registerCommand("kanban-switch", {
+    description: kanbanSwitchCommand.description,
+    handler: kanbanSwitchCommand.execute,
+  });
 }
 
 /**
@@ -129,21 +186,21 @@ export default function registerExtension(pi: ExtensionAPI): void {
       if (!process.env.HERMES_KANBAN_TASK) return;
 
       // Check if kanban_complete was called in this turn
-      const toolCalls = event.toolCalls || [];
-      const completedThisTurn = toolCalls.some(
-        (tc: { name?: string }) => tc.name === "kanban_complete"
-      );
-      if (completedThisTurn) return;
+      const toolResults = event.toolResults || [];
+      if (wasToolCalled(toolResults, "kanban_complete")) return;
 
       // Check assistant response for completion signals
-      const response = event.assistantMessage || "";
+      const responseText = extractMessageText(event.message);
       for (const pattern of COMPLETION_SIGNALS) {
-        if (pattern.test(response)) {
-          // Inject steer message
+        if (pattern.test(responseText)) {
+          // Inject steer message via pi.sendMessage
           const steerMessage =
-            "\n\n[Kanban Worker] You appear to have finished your work. " +
+            "[Kanban Worker] You appear to have finished your work. " +
             "Would you like me to call `kanban_complete()` with a summary?";
-          event.steerMessage = steerMessage;
+          pi.sendMessage(
+            { customType: "kanban-worker", content: steerMessage, display: true },
+            { deliverAs: "steer" }
+          );
           console.log("[hermes-kanban] Completion signal detected, injecting steer");
           break;
         }
