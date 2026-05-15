@@ -43,25 +43,13 @@ A [pi agent](https://pi.dev) extension that integrates with the [Hermes multi-ag
 
 ## Installation
 
-### One-Liner (Recommended)
+### One-Line Install (Recommended)
 
 ```bash
-curl -sL https://raw.githubusercontent.com/Changhochien/hermes-kanban-pi-extension/main/install.sh | bash
+pi install git:github.com/Changhochien/hermes-kanban-pi-extension
 ```
 
-### Manual Install
-
-```bash
-# Clone to pi extensions directory
-git clone https://github.com/Changhochien/hermes-kanban-pi-extension.git \
-  ~/.pi/agent/extensions/hermes-kanban
-
-# Install dependencies and build
-cd ~/.pi/agent/extensions/hermes-kanban
-npm install && npm run build
-```
-
-> ⚠️ After installing, restart pi agent to load the extension.
+That's it! Pi handles dependencies and building automatically.
 
 ## Usage
 
