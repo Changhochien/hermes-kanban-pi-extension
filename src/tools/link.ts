@@ -25,18 +25,9 @@ Use this to:
       "Child tasks wait for parent to complete",
     ],
     parameters: {
-      board: {
-        type: "string" as const,
-        description: "Board name (defaults to current board)",
-      }.optional(),
-      parent_id: {
-        type: "string" as const,
-        description: "Parent task ID (must complete before child)",
-      },
-      child_id: {
-        type: "string" as const,
-        description: "Child task ID (waits for parent)",
-      },
+      board: { type: "string", description: "Board name (defaults to current board)" },
+      parent_id: { type: "string", description: "Parent task ID (must complete before child)" },
+      child_id: { type: "string", description: "Child task ID (waits for parent)" },
     },
     async execute(_toolCallId, params) {
       try {

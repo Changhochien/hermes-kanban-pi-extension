@@ -3,8 +3,9 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { StringEnum } from "@earendil-works/pi-ai";
 import { getService } from "../service/KanbanServiceFactory.js";
+
+const SEVERITIES = ["warning", "error", "critical"] as const;
 
 export function registerKanbanDiagnosticsTool(pi: ExtensionAPI): void {
   pi.registerTool({
@@ -26,18 +27,14 @@ Use this to:
       "Use kanban_reclaim to take over stale tasks",
     ],
     parameters: {
-      board: {
-        type: "string" as const,
-        description: "Board name (defaults to current board)",
-      }.optional(),
-      severity: StringEnum(["warning", "error", "critical"] as const)
-        .optional(),
+      board: { type: "string", description: "Board name (defaults to current board)" },
+      severity: { type: "string", enum: SEVERITIES, description: "Filter by severity" },
     },
     async execute(_toolCallId, params) {
       try {
         const service = getService(params.board);
         const diagnostics = service.getDiagnostics({
-          severity: params.severity as "warning" | "error" | "critical" | undefined,
+          severity: params.severity as typeof SEVERITIES[number] | undefined,
         });
         const output = service.formatDiagnostics(diagnostics);
 

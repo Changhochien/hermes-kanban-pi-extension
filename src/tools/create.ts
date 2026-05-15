@@ -3,8 +3,9 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { StringEnum } from "@earendil-works/pi-ai";
 import { getService } from "../service/KanbanServiceFactory.js";
+
+const WORKSPACE_KINDS = ["scratch", "dir", "worktree"] as const;
 
 export function registerKanbanCreateTool(pi: ExtensionAPI): void {
   pi.registerTool({
@@ -26,42 +27,16 @@ Use this to:
       "Use kanban_link to connect related tasks",
     ],
     parameters: {
-      board: {
-        type: "string" as const,
-        description: "Board name (defaults to current board)",
-      }.optional(),
-      title: { type: "string" as const, description: "Task title/summary" },
-      assignee: { type: "string" as const, description: "Worker profile to assign" },
-      body: {
-        type: "string" as const,
-        description: "Detailed task description (markdown supported)",
-      }.optional(),
-      priority: {
-        type: "integer" as const,
-        description: "Priority (1=highest, 3=normal, 5=lowest)",
-        minimum: 1,
-        maximum: 5,
-      }.optional(),
-      parents: {
-        type: "array" as const,
-        items: { type: "string" as const },
-        description: "Parent task IDs for dependencies",
-      }.optional(),
-      workspace_kind: StringEnum(["scratch", "dir", "worktree"] as const)
-        .optional(),
-      triage: {
-        type: "boolean" as const,
-        description: "Start in triage status for specification",
-      }.optional(),
-      skills: {
-        type: "array" as const,
-        items: { type: "string" as const },
-        description: "Skills to load in the worker",
-      }.optional(),
-      idempotency_key: {
-        type: "string" as const,
-        description: "Unique key to avoid duplicate tasks",
-      }.optional(),
+      board: { type: "string", description: "Board name (defaults to current board)" },
+      title: { type: "string", description: "Task title/summary" },
+      assignee: { type: "string", description: "Worker profile to assign" },
+      body: { type: "string", description: "Detailed task description (markdown supported)" },
+      priority: { type: "integer", description: "Priority (1=highest, 3=normal, 5=lowest)" },
+      parents: { type: "array", items: { type: "string" }, description: "Parent task IDs for dependencies" },
+      workspace_kind: { type: "string", enum: WORKSPACE_KINDS, description: "Workspace type" },
+      triage: { type: "boolean", description: "Start in triage status for specification" },
+      skills: { type: "array", items: { type: "string" }, description: "Skills to load in the worker" },
+      idempotency_key: { type: "string", description: "Unique key to avoid duplicate tasks" },
     },
     async execute(_toolCallId, params) {
       try {

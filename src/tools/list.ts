@@ -3,8 +3,9 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { StringEnum } from "@earendil-works/pi-ai";
 import { getService } from "../service/KanbanServiceFactory.js";
+
+const STATUSES = ["triage", "todo", "ready", "running", "blocked", "done", "archived"] as const;
 
 export function registerKanbanListTool(pi: ExtensionAPI): void {
   pi.registerTool({
@@ -27,20 +28,17 @@ Use this to:
       "Use kanban_show for detailed task information",
     ],
     parameters: {
-      board: {
-        type: "string" as const,
-        description: "Board name (defaults to current board)",
-      }.optional(),
-      status: StringEnum(["triage", "todo", "ready", "running", "blocked", "done", "archived"] as const).optional(),
-      assignee: { type: "string" as const, description: "Filter by assignee profile" }.optional(),
-      tenant: { type: "string" as const, description: "Filter by tenant/project" }.optional(),
-      limit: { type: "integer" as const, description: "Max results (default 50, max 200)", minimum: 1, maximum: 200 }.optional(),
+      board: { type: "string", description: "Board name (defaults to current board)" },
+      status: { type: "string", enum: STATUSES, description: "Filter by status" },
+      assignee: { type: "string", description: "Filter by assignee profile" },
+      tenant: { type: "string", description: "Filter by tenant/project" },
+      limit: { type: "integer", description: "Max results (default 50, max 200)" },
     },
     async execute(_toolCallId, params) {
       try {
         const service = getService(params.board);
         const tasks = service.listTasks({
-          status: params.status,
+          status: params.status as typeof STATUSES[number] | undefined,
           assignee: params.assignee,
           tenant: params.tenant,
           limit: params.limit ?? 50,
