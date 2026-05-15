@@ -39,6 +39,8 @@ npm install && npm run build
 ```
 
 > ⚠️ After installing, restart pi agent to load the extension.
+>
+> **Custom repo:** `REPO=your-org/hermes-kanban-pi-extension curl -sL ... | bash`
 
 ## Available Tools
 
