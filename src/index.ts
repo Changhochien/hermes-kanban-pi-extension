@@ -26,6 +26,7 @@ import registerHeartbeatTool from "./tools/heartbeat.js";
 import registerReclaimTool from "./tools/reclaim.js";
 import registerBoardsTool from "./tools/boards.js";
 import registerWorkerContextTool from "./tools/worker_context.js";
+import registerProfilesTool from "./tools/profiles.js";
 
 // --- Commands ---
 import { kanbanBoardCommand } from "./commands/board.js";
@@ -84,6 +85,7 @@ function registerTools(pi: ExtensionAPI): void {
   registerReclaimTool(pi);
   registerBoardsTool(pi);
   registerWorkerContextTool(pi);
+  registerProfilesTool(pi);
 }
 
 /**

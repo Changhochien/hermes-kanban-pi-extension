@@ -29,6 +29,7 @@ A [pi agent](https://pi.dev) extension that integrates with the [Hermes multi-ag
 | `kanban_heartbeat` | Send heartbeat to prevent stale detection |
 | `kanban_reclaim` | Take over a stuck task |
 | `kanban_boards` | List available boards |
+| `kanban_profiles` | List available Hermes profiles (workers) |
 | `kanban_worker_context` | Get current task context (when running as worker) |
 
 ### Commands
@@ -67,18 +68,31 @@ npm install && npm run build
 ### As Orchestrator
 
 ```bash
+# List available agents/profiles
+pi "What Hermes profiles are available?"
+
 # List ready tasks
 pi "What tasks are ready for work?"
 
-# Create a task
+# Create a task for a specific agent
 pi "Create a task for the researcher to analyze competitors"
+
+# Create a task, let pi pick the right agent
+pi "Create a task to write unit tests. Figure out which agent is best suited."
 
 # Monitor board
 pi "Show me the current kanban board"
 
-# Link tasks
+# Link tasks for pipeline
 pi "Create a research task and link it to the synthesis task"
 ```
+
+**Orchestrator Workflow:**
+1. `kanban_profiles` — Discover available agents
+2. `kanban_list` — See what tasks exist and who's assigned
+3. `kanban_create` — Delegate work to a specific agent
+4. `kanban_link` — Set up dependencies between tasks
+5. `kanban_diagnostics` — Monitor for stuck tasks
 
 ### As Worker
 
