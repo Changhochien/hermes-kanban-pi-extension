@@ -15,14 +15,14 @@ A [pi agent](https://pi.dev) extension that integrates with the [Hermes multi-ag
 ### One-Liner (Recommended)
 
 ```bash
-curl -sL https://raw.githubusercontent.com/YOUR_USER/hermes-kanban-pi-extension/main/install.sh | bash
+curl -sL https://raw.githubusercontent.com/Changhochien/hermes-kanban-pi-extension/main/install.sh | bash
 ```
 
 ### Manual Install
 
 ```bash
 # Clone to pi extensions directory
-git clone https://github.com/YOUR_USER/hermes-kanban-pi-extension.git \
+git clone https://github.com/Changhochien/hermes-kanban-pi-extension.git \
   ~/.pi/agent/extensions/hermes-kanban
 
 # Install dependencies and build
@@ -33,7 +33,7 @@ npm install && npm run build
 ### Using degit
 
 ```bash
-npx degit YOUR_USER/hermes-kanban-pi-extension ~/.pi/agent/extensions/hermes-kanban
+npx degit Changhochien/hermes-kanban-pi-extension ~/.pi/agent/extensions/hermes-kanban
 cd ~/.pi/agent/extensions/hermes-kanban
 npm install && npm run build
 ```

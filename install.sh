@@ -3,12 +3,12 @@
 # hermes-kanban-pi-extension installer
 #
 # Usage:
-#   curl -sL https://raw.githubusercontent.com/YOUR_USER/hermes-kanban-pi-extension/main/install.sh | bash
+#   curl -sL https://raw.githubusercontent.com/Changhochien/hermes-kanban-pi-extension/main/install.sh | bash
 #
 
 set -e
 
-REPO="${REPO:-YOUR_USER/hermes-kanban-pi-extension}"
+REPO="${REPO:-Changhochien/hermes-kanban-pi-extension}"
 EXTENSION_DIR="${HOME}/.pi/agent/extensions/hermes-kanban"
 
 echo "📋 Installing hermes-kanban-pi-extension..."
