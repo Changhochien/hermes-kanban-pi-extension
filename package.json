@@ -13,7 +13,7 @@
   ],
   "pi": {
     "extensions": ["./src/index.ts"],
-    "skills": ["./skills"]
+    "skills": ["./skills/hermes-kanban"]
   },
   "scripts": {
     "build": "tsc",
