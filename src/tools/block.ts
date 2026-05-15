@@ -1,53 +1,55 @@
 /**
- * kanban_block tool — Block a task pending human input
+ * kanban_block tool — Block a task pending input
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { KanbanService } from "../service/KanbanService.js";
+import { getService } from "../service/KanbanServiceFactory.js";
 
-export function registerKanbanBlockTool(
-  pi: ExtensionAPI,
-  getService: () => KanbanService
-): void {
+export function registerKanbanBlockTool(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "kanban_block",
     label: "Kanban Block",
-    description: `Block a task because you need human input to proceed.
-The reason is shown on the board and in context when someone 
-unblocks the task.
+    description: `Block a task that is waiting for external input (human review, 
+dependency completion, external system, etc.). The task stops running and
+waits for the block to be resolved.
 
-Required: task_id and reason`,
+Use this to:
+- Pause work waiting for human input
+- Mark tasks waiting on dependencies
+- Signal that something external is needed
+- Prevent stale running detection`,
     promptSnippet: "Block kanban task",
     promptGuidelines: [
-      "Use kanban_block when work cannot proceed without human input",
-      "Provide a clear reason explaining what is needed",
-      "Don't block on things you can resolve yourself",
+      "Use kanban_block when work is paused waiting for input",
+      "Use kanban_block when something external is needed",
+      "Use kanban_unblock when the block is resolved",
     ],
     parameters: {
-      task_id: { type: "string" as const, description: "Task ID to block (defaults to HERMES_KANBAN_TASK env)" }.optional(),
-      reason: { type: "string" as const, description: "What input is needed to unblock (be specific)" },
+      board: {
+        type: "string" as const,
+        description: "Board name (defaults to current board)",
+      }.optional(),
+      task_id: { type: "string" as const, description: "Task ID (t_<hex8>)" },
+      reason: { type: "string" as const, description: "Reason for blocking" },
     },
     async execute(_toolCallId, params) {
       try {
-        const service = getService();
-
-        const taskId = params.task_id || process.env.HERMES_KANBAN_TASK;
-        if (!taskId) {
-          return {
-            content: [{ type: "text" as const, text: "Error: task_id is required (or set HERMES_KANBAN_TASK env var)" }],
-            details: { tool: "kanban_block", error: "task_id required" },
-          };
-        }
+        const service = getService(params.board);
 
         if (!(await service.isWriteAvailable())) {
           return {
-            content: [{ type: "text" as const, text: "Error: hermes CLI not found" }],
+            content: [
+              {
+                type: "text" as const,
+                text: "Error: hermes CLI not found. Write operations require the hermes CLI in PATH.",
+              },
+            ],
             details: { tool: "kanban_block", error: "hermes CLI not found" },
           };
         }
 
         const result = await service.blockTask({
-          taskId,
+          taskId: params.task_id,
           reason: params.reason,
         });
 
@@ -59,8 +61,18 @@ Required: task_id and reason`,
         }
 
         return {
-          content: [{ type: "text" as const, text: `Task ${taskId} blocked.\n\nReason: ${params.reason}` }],
-          details: { tool: "kanban_block", success: true, task_id: taskId },
+          content: [
+            {
+              type: "text" as const,
+              text: `Task ${params.task_id} blocked.\nReason: ${params.reason}\n\nUse kanban_comment to add more details, or unblock when resolved.`,
+            },
+          ],
+          details: {
+            tool: "kanban_block",
+            success: true,
+            task_id: params.task_id,
+            board: service.board,
+          },
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

@@ -120,7 +120,7 @@ export class WriteRepo {
    * Run a hermes kanban command via CLI
    * Uses execFile (not exec) to avoid shell injection
    */
-  private async runCommand(args: string[]): Promise<CliResult> {
+  async runCommand(args: string[]): Promise<CliResult> {
     const hermesPath = await this.ensureHermesPath();
     const fullArgs = ["kanban", ...args];
 

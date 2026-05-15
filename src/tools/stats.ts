@@ -3,27 +3,35 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { KanbanService } from "../service/KanbanService.js";
+import { getService } from "../service/KanbanServiceFactory.js";
 
-export function registerKanbanStatsTool(
-  pi: ExtensionAPI,
-  getService: () => KanbanService
-): void {
+export function registerKanbanStatsTool(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "kanban_stats",
     label: "Kanban Stats",
-    description: `Get board statistics: task counts by status, tasks per 
-assignee, and age of oldest ready task. Useful for workload 
-balancing and board health monitoring.`,
-    promptSnippet: "Kanban statistics",
+    description: `Get board statistics: task counts by status, tasks per assignee, 
+and age of oldest ready task. Useful for workload balancing and identifying bottlenecks.
+
+Use this to:
+- Check workload distribution across workers
+- Identify bottlenecks (oldest ready tasks)
+- Get quick board health overview
+- Monitor progress (done vs total)`,
+    promptSnippet: "Get kanban stats",
     promptGuidelines: [
-      "Use kanban_stats for quick board statistics",
-      "Use kanban_stats to check workload distribution",
+      "Use kanban_stats when asked for board statistics",
+      "Use kanban_stats to check workload balance",
+      "Use kanban_board for detailed task listing",
     ],
-    parameters: {},
-    async execute(_toolCallId, _params) {
+    parameters: {
+      board: {
+        type: "string" as const,
+        description: "Board name (defaults to current board)",
+      }.optional(),
+    },
+    async execute(_toolCallId, params) {
       try {
-        const service = getService();
+        const service = getService(params.board);
         const stats = service.getStats();
         const output = service.formatStats(stats);
 
@@ -31,9 +39,8 @@ balancing and board health monitoring.`,
           content: [{ type: "text" as const, text: output }],
           details: {
             tool: "kanban_stats",
-            total: stats.total,
-            by_status: stats.by_status,
-            by_assignee: stats.by_assignee,
+            board: service.board,
+            stats,
           },
         };
       } catch (err) {

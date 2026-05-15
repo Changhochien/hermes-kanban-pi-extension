@@ -1,7 +1,7 @@
 {
   "name": "@hermes/pi-kanban",
-  "version": "1.0.0",
-  "description": "Pi agent extension for Hermes multi-agent Kanban board integration",
+  "version": "2.0.0",
+  "description": "Pi agent extension for Hermes multi-agent Kanban board integration. Supports multi-board, worker context injection, and health tools.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",

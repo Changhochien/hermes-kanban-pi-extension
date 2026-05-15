@@ -1,43 +1,53 @@
 /**
- * kanban_diagnostics tool — Check for task health issues
+ * kanban_diagnostics tool — Check task health
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { StringEnum } from "@earendil-works/pi-ai";
-import type { KanbanService } from "../service/KanbanService.js";
+import { getService } from "../service/KanbanServiceFactory.js";
 
-export function registerKanbanDiagnosticsTool(
-  pi: ExtensionAPI,
-  getService: () => KanbanService
-): void {
+export function registerKanbanDiagnosticsTool(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "kanban_diagnostics",
     label: "Kanban Diagnostics",
-    description: `Check all tasks for distress signals and health issues.
-Detects:
-- Stale running tasks (no heartbeat for extended time)
-- Repeated failures (3+ failed attempts)
+    description: `Check all tasks for distress signals: stale running tasks, 
+repeated failures, hallucinated card references, spawn failures.
+Returns actionable warnings grouped by severity (warning/error/critical).
 
-Returns actionable warnings with severity levels.`,
-    promptSnippet: "Kanban diagnostics",
+Use this to:
+- Detect tasks that need attention
+- Find stale or abandoned tasks
+- Identify hallucinated task IDs in comments
+- Get health overview of the board`,
+    promptSnippet: "Run kanban diagnostics",
     promptGuidelines: [
       "Use kanban_diagnostics to check for task health issues",
-      "Use kanban_diagnostics to find stuck or failing tasks",
+      "Use kanban_diagnostics after encountering errors",
+      "Use kanban_reclaim to take over stale tasks",
     ],
     parameters: {
-      severity: StringEnum(["warning", "error", "critical"] as const).optional(),
+      board: {
+        type: "string" as const,
+        description: "Board name (defaults to current board)",
+      }.optional(),
+      severity: StringEnum(["warning", "error", "critical"] as const)
+        .optional(),
     },
     async execute(_toolCallId, params) {
       try {
-        const service = getService();
-        const diagnostics = service.getDiagnostics({ severity: params.severity });
+        const service = getService(params.board);
+        const diagnostics = service.getDiagnostics({
+          severity: params.severity as "warning" | "error" | "critical" | undefined,
+        });
         const output = service.formatDiagnostics(diagnostics);
 
         return {
           content: [{ type: "text" as const, text: output }],
           details: {
             tool: "kanban_diagnostics",
-            issues: diagnostics.length,
+            board: service.board,
+            issue_count: diagnostics.length,
+            severity_filter: params.severity || "all",
           },
         };
       } catch (err) {

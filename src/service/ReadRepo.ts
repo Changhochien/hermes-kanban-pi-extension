@@ -2,7 +2,7 @@
  * Read operations repository — all reads go through SQLite
  */
 
-import { query, queryOne } from "../db/connection.js";
+import { query, queryOne, closeConnection } from "../db/connection.js";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { getHermesHome } from "../utils/board-resolve.js";
@@ -357,5 +357,12 @@ export class ReadRepo {
       // Column might not exist in older versions
       return null;
     }
+  }
+
+  /**
+   * Close the connection for this board
+   */
+  close(): void {
+    closeConnection(this.board);
   }
 }

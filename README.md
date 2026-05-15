@@ -4,11 +4,41 @@ A [pi agent](https://pi.dev) extension that integrates with the [Hermes multi-ag
 
 ## Features
 
-- **Read the Kanban board** — List tasks, view board columns, get task details
-- **Create tasks** — Delegate work to Hermes worker agents
-- **Update status** — Complete tasks, block pending input, add comments
-- **Dependency management** — Link parent→child tasks for pipelines
-- **Diagnostics** — Identify distressed tasks (stale, failing, hallucinated)
+### v2.0.0 — Now with Worker Support
+
+- **14 Kanban Tools** — Full read/write operations across 14 tools
+- **Multi-Board Support** — `board` parameter on all tools, `/kanban-switch` command
+- **Pi as Hermes Worker** — Auto-context injection, completion detection
+- **Worker Health Tools** — Heartbeat, reclaim stuck tasks
+- **4 Slash Commands** — Quick board views, stats, web, switch
+
+### Tools
+
+| Tool | Description |
+|------|-------------|
+| `kanban_list` | List tasks with filters (status, assignee, tenant) |
+| `kanban_board` | Get full board grouped by column |
+| `kanban_show` | Get detailed task info (body, comments, events, runs) |
+| `kanban_stats` | Get board statistics |
+| `kanban_diagnostics` | Check for task health issues |
+| `kanban_create` | Create a new task for a Hermes worker |
+| `kanban_complete` | Mark task done with handoff summary |
+| `kanban_block` | Block task pending input |
+| `kanban_comment` | Add comment to task thread |
+| `kanban_link` | Create parent→child dependency |
+| `kanban_heartbeat` | Send heartbeat to prevent stale detection |
+| `kanban_reclaim` | Take over a stuck task |
+| `kanban_boards` | List available boards |
+| `kanban_worker_context` | Get current task context (when running as worker) |
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `/kanban-board` | Quick board overview |
+| `/kanban-stats` | Quick stats display |
+| `/kanban-web` | Open Hermes dashboard in browser |
+| `/kanban-switch [board]` | Switch the active board |
 
 ## Installation
 
@@ -30,93 +60,86 @@ cd ~/.pi/agent/extensions/hermes-kanban
 npm install && npm run build
 ```
 
-### Using degit
+> ⚠️ After installing, restart pi agent to load the extension.
+
+## Usage
+
+### As Orchestrator
 
 ```bash
-npx degit Changhochien/hermes-kanban-pi-extension ~/.pi/agent/extensions/hermes-kanban
-cd ~/.pi/agent/extensions/hermes-kanban
-npm install && npm run build
+# List ready tasks
+pi "What tasks are ready for work?"
+
+# Create a task
+pi "Create a task for the researcher to analyze competitors"
+
+# Monitor board
+pi "Show me the current kanban board"
+
+# Link tasks
+pi "Create a research task and link it to the synthesis task"
 ```
 
-> ⚠️ After installing, restart pi agent to load the extension.
->
-> **Custom repo:** `REPO=your-org/hermes-kanban-pi-extension curl -sL ... | bash`
+### As Worker
 
-## Available Tools
+When launched with `HERMES_KANBAN_TASK=t_abc123`, the extension automatically:
+- Injects task context into the system prompt
+- Detects completion signals and suggests `kanban_complete`
+- Provides `kanban_worker_context` tool for self-awareness
 
-| Tool | Description |
-|------|-------------|
-| `kanban_list` | List tasks with filters (status, assignee, tenant) |
-| `kanban_board` | Get full board grouped by column |
-| `kanban_show` | Get detailed task info (body, comments, events, runs) |
-| `kanban_create` | Create a new task for a Hermes worker |
-| `kanban_complete` | Mark task done with handoff summary |
-| `kanban_block` | Block task pending human input |
-| `kanban_comment` | Add comment to task thread |
-| `kanban_link` | Create parent→child dependency |
-| `kanban_diagnostics` | Check for task health issues |
-| `kanban_stats` | Get board statistics |
+```bash
+# Launch as Hermes worker
+HERMES_KANBAN_TASK=t_abc123 pi --mode json
 
-## Available Commands
+# Send heartbeat during long operations
+pi "Send a heartbeat for my current task"
+```
 
-| Command | Description |
-|---------|-------------|
-| `/kanban-board` | Quick board overview |
-| `/kanban-stats` | Quick stats display |
+### Multi-Board
+
+```bash
+# List available boards
+pi "What boards are available?"
+
+# Switch board
+/kanban-switch research
+
+# Use specific board in any tool
+pi "List the ready tasks on the production board"
+```
 
 ## Configuration
 
-The extension auto-detects the Hermes Kanban database at:
-- `~/.hermes/kanban.db` (default board)
-- `~/.hermes/kanban/boards/<slug>/kanban.db` (multi-board)
+Environment variables:
 
-Set `HERMES_HOME` environment variable for custom paths.
-
-## Usage Examples
-
-### Create a Task
-
-```
-pi > Create a task for the researcher to analyze competitors
-
-pi will call: kanban_create(
-  title="Competitor analysis",
-  assignee="researcher",
-  body="Find and analyze top 5 competitors..."
-)
-```
-
-### View the Board
-
-```
-pi > What's on the kanban board?
-
-pi will call: kanban_board()
-Returns: Tasks grouped by status column with stats
-```
-
-### Complete with Handoff
-
-```
-pi > I'm done with the analysis
-
-pi will call: kanban_complete(
-  task_id="t_12345678",
-  summary="Completed competitor analysis with key findings",
-  metadata={"competitors_found": 5, "documents_reviewed": 20}
-)
-```
-
-## Requirements
-
-- Node.js 18+
-- pi agent 1.x
-- Hermes agent 0.12+ (with kanban feature)
-- `better-sqlite3` npm package
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HERMES_HOME` | `~/.hermes` | Hermes config directory |
+| `HERMES_KANBAN_BOARD` | `default` | Default board name |
+| `HERMES_KANBAN_TASK` | — | Current task ID (set by Hermes) |
+| `HERMES_KANBAN_AUTO_COMPLETE` | `0` | Auto-complete on detection (not recommended) |
 
 ## Architecture
 
-See [PRD.md](./PRD.md) for full technical specification.
+```
+src/
+├── index.ts              # Extension entry + lifecycle hooks
+├── service/
+│   ├── KanbanService.ts  # Facade (all operations)
+│   ├── KanbanServiceFactory.ts  # Per-board cache
+│   ├── ReadRepo.ts      # SQLite reads
+│   └── WriteRepo.ts     # CLI writes
+├── db/
+│   └── connection.ts    # Per-board connection pool
+├── cli/
+│   └── parser.ts        # CLI output parsing
+├── tools/               # 14 tools
+├── commands/            # 4 commands
+└── utils/
+    ├── errors.ts         # Error types
+    ├── truncate.ts       # Output truncation
+    └── board-resolve.ts  # Board path resolution
+```
 
 ## License
 

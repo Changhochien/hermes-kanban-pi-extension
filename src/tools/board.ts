@@ -3,12 +3,9 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { KanbanService } from "../service/KanbanService.js";
+import { getService } from "../service/KanbanServiceFactory.js";
 
-export function registerKanbanBoardTool(
-  pi: ExtensionAPI,
-  getService: () => KanbanService
-): void {
+export function registerKanbanBoardTool(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "kanban_board",
     label: "Kanban Board",
@@ -28,10 +25,15 @@ Use this to:
       "Use kanban_board when asked about overall project status",
       "Use kanban_list for filtered views",
     ],
-    parameters: {},
-    async execute(_toolCallId, _params) {
+    parameters: {
+      board: {
+        type: "string" as const,
+        description: "Board name (defaults to current board)",
+      }.optional(),
+    },
+    async execute(_toolCallId, params) {
       try {
-        const service = getService();
+        const service = getService(params.board);
         const result = service.getBoard();
         const output = service.formatBoard(result);
 
@@ -39,6 +41,7 @@ Use this to:
           content: [{ type: "text" as const, text: output }],
           details: {
             tool: "kanban_board",
+            board: service.board,
             columns: result.columns.length,
             total: result.stats.total,
           },

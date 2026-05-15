@@ -7,6 +7,10 @@
 
 import { ReadRepo } from "./ReadRepo.js";
 import { WriteRepo } from "./WriteRepo.js";
+import { existsSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+import { getHermesHome } from "../utils/board-resolve.js";
 import type {
   Task,
   TaskSummary,
@@ -232,6 +236,167 @@ export class KanbanService {
    */
   async assignTask(taskId: string, assignee: string): Promise<Result> {
     return this.writeRepo.assignTask(taskId, assignee);
+  }
+
+  /**
+   * Send a heartbeat for a task (prevents stale detection)
+   */
+  async heartbeat(taskId?: string): Promise<Result<{ taskId: string }>> {
+    const tid = taskId || process.env.HERMES_KANBAN_TASK;
+    if (!tid) {
+      return {
+        ok: false,
+        error: "No task ID provided and HERMES_KANBAN_TASK not set",
+        code: "VALIDATION_ERROR",
+      };
+    }
+
+    const result = await this.writeRepo.runCommand(["heartbeat", tid]);
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: result.stderr || "Failed to send heartbeat",
+        code: "CLI_ERROR",
+      };
+    }
+
+    return { ok: true, data: { taskId: tid } };
+  }
+
+  /**
+   * Reclaim a stuck task
+   */
+  async reclaimTask(taskId: string, reason?: string): Promise<Result> {
+    // Preflight: check task exists and is in running state
+    if (!this.readRepo.taskExists(taskId)) {
+      return {
+        ok: false,
+        error: `Task ${taskId} not found`,
+        code: "TASK_NOT_FOUND",
+      };
+    }
+
+    const task = this.readRepo.getTask(taskId);
+    if (task && task.status !== "running") {
+      return {
+        ok: false,
+        error: `Task ${taskId} is not in running state (current: ${task.status})`,
+        code: "VALIDATION_ERROR",
+      };
+    }
+
+    const args = ["reclaim", taskId];
+    if (reason) {
+      args.push("--reason", reason);
+    }
+
+    const result = await this.writeRepo.runCommand(args);
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: result.stderr || "Failed to reclaim task",
+        code: "CLI_ERROR",
+      };
+    }
+
+    return { ok: true };
+  }
+
+  /**
+   * List available boards
+   */
+  getBoards(): Array<{ slug: string; path: string; taskCount: number }> {
+    const hermesHome = getHermesHome();
+    const boards: Array<{ slug: string; path: string; taskCount: number }> = [];
+
+    // Always include default board
+    const defaultPath = join(hermesHome, "kanban.db");
+    if (existsSync(defaultPath)) {
+      try {
+        const count = this.readRepo.listTasks({}).length;
+        boards.push({ slug: "default", path: defaultPath, taskCount: count });
+      } catch {
+        boards.push({ slug: "default", path: defaultPath, taskCount: 0 });
+      }
+    }
+
+    // Check for multi-board directory
+    const boardsDir = join(hermesHome, "kanban", "boards");
+    if (existsSync(boardsDir)) {
+      try {
+        const entries = readdirSync(boardsDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const boardPath = join(boardsDir, entry.name, "kanban.db");
+            if (existsSync(boardPath)) {
+              try {
+                // Create a temp ReadRepo to count tasks
+                const tempRepo = new ReadRepo(entry.name);
+                const count = tempRepo.listTasks({}).length;
+                boards.push({ slug: entry.name, path: boardPath, taskCount: count });
+              } catch {
+                boards.push({ slug: entry.name, path: boardPath, taskCount: 0 });
+              }
+            }
+          }
+        }
+      } catch {
+        // Ignore errors reading boards directory
+      }
+    }
+
+    return boards;
+  }
+
+  /**
+   * Get worker context from HERMES_KANBAN_TASK env var
+   */
+  getWorkerContext(): TaskDetail | null {
+    const taskId = process.env.HERMES_KANBAN_TASK;
+    if (!taskId) {
+      return null;
+    }
+    return this.getTask(taskId);
+  }
+
+  /**
+   * Format worker context for injection into system prompt
+   */
+  formatWorkerContext(): string {
+    const context = this.getWorkerContext();
+    if (!context) {
+      return "[No HERMES_KANBAN_TASK set — not running as Hermes worker]";
+    }
+
+    const { task, links, comments, runs } = context;
+    let output = "[HERMES WORKER CONTEXT]\n";
+    output += `Task: ${task.id} — \"${task.title}\"\n`;
+    output += `Status: ${task.status}\n`;
+    output += `Description: ${task.body || "(none)"}\n`;
+
+    if (links.parents.length > 0) {
+      output += `Parents: ${links.parents.join(", ")}\n`;
+    }
+
+    if (comments.length > 0) {
+      output += `Comments:\n`;
+      for (const c of comments.slice(-3)) {
+        output += `  @${c.author}: ${c.body.slice(0, 200)}\n`;
+      }
+    }
+
+    output += `Run history: ${runs.length} attempt(s)\n`;
+    output += `\nWhen finished: call kanban_complete(summary=\"...\")\n`;
+    output += `If blocked: call kanban_block(reason=\"...\")`;
+
+    return output;
+  }
+
+  /**
+   * Close the service (close database connections)
+   */
+  close(): void {
+    this.readRepo.close();
   }
 
   // --- Utilities ---

@@ -1,60 +1,67 @@
 /**
- * kanban_complete tool — Mark a task as completed
+ * kanban_complete tool — Mark a task as done
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { KanbanService } from "../service/KanbanService.js";
+import { getService } from "../service/KanbanServiceFactory.js";
 
-export function registerKanbanCompleteTool(
-  pi: ExtensionAPI,
-  getService: () => KanbanService
-): void {
+export function registerKanbanCompleteTool(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "kanban_complete",
     label: "Kanban Complete",
-    description: `Mark a task as completed with a structured handoff summary.
-The summary appears in downstream worker context and dashboard.
-Include metadata about what was done for future reference.
+    description: `Mark a task as done with a summary of the work completed.
+The summary is added as a comment and can include metadata about outcomes.
 
-Required: task_id (or HERMES_KANBAN_TASK env var) and summary
-Optional: metadata (structured facts), created_cards (tasks created during work)`,
+Use this to:
+- Mark work as finished
+- Provide handoff summary for next tasks
+- Record outcomes and learnings
+- Trigger downstream tasks (children)`,
     promptSnippet: "Complete kanban task",
     promptGuidelines: [
-      "Use kanban_complete when a task is finished",
-      "Include a summary describing what was accomplished",
-      "Include metadata about files changed, tests run, etc.",
+      "Use kanban_complete when work is finished",
+      "Use kanban_complete when asked to close, finish, or mark done",
+      "Include a summary of what was accomplished",
     ],
     parameters: {
-      task_id: { type: "string" as const, description: "Task ID to complete (defaults to HERMES_KANBAN_TASK env)" }.optional(),
-      summary: { type: "string" as const, description: "1-3 sentence description of what was accomplished" }.optional(),
-      metadata: { type: "object" as const, description: "Structured facts about the work" }.optional(),
-      result: { type: "string" as const, description: "Legacy result line" }.optional(),
-      created_cards: { type: "array" as const, items: { type: "string" as const }, description: "Task IDs created during this work" }.optional(),
+      board: {
+        type: "string" as const,
+        description: "Board name (defaults to current board)",
+      }.optional(),
+      task_id: { type: "string" as const, description: "Task ID (t_<hex8>)" },
+      summary: {
+        type: "string" as const,
+        description: "Summary of work completed",
+      }.optional(),
+      result: {
+        type: "string" as const,
+        description: "Final result/output of the task",
+      }.optional(),
+      created_cards: {
+        type: "array" as const,
+        items: { type: "string" as const },
+        description: "Task IDs created as part of this task",
+      }.optional(),
     },
     async execute(_toolCallId, params) {
       try {
-        const service = getService();
-
-        // Resolve task ID
-        const taskId = params.task_id || process.env.HERMES_KANBAN_TASK;
-        if (!taskId) {
-          return {
-            content: [{ type: "text" as const, text: "Error: task_id is required (or set HERMES_KANBAN_TASK env var)" }],
-            details: { tool: "kanban_complete", error: "task_id required" },
-          };
-        }
+        const service = getService(params.board);
 
         if (!(await service.isWriteAvailable())) {
           return {
-            content: [{ type: "text" as const, text: "Error: hermes CLI not found" }],
+            content: [
+              {
+                type: "text" as const,
+                text: "Error: hermes CLI not found. Write operations require the hermes CLI in PATH.",
+              },
+            ],
             details: { tool: "kanban_complete", error: "hermes CLI not found" },
           };
         }
 
         const result = await service.completeTask({
-          taskId,
+          taskId: params.task_id,
           summary: params.summary,
-          metadata: params.metadata,
           result: params.result,
           createdCards: params.created_cards,
         });
@@ -67,8 +74,18 @@ Optional: metadata (structured facts), created_cards (tasks created during work)
         }
 
         return {
-          content: [{ type: "text" as const, text: `Task ${taskId} marked as complete.` }],
-          details: { tool: "kanban_complete", success: true, task_id: taskId },
+          content: [
+            {
+              type: "text" as const,
+              text: `Task ${params.task_id} marked as done.${params.summary ? `\n\nSummary: ${params.summary}` : ""}`,
+            },
+          ],
+          details: {
+            tool: "kanban_complete",
+            success: true,
+            task_id: params.task_id,
+            board: service.board,
+          },
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

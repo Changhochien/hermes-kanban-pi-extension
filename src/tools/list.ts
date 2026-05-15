@@ -4,12 +4,9 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { StringEnum } from "@earendil-works/pi-ai";
-import type { KanbanService } from "../service/KanbanService.js";
+import { getService } from "../service/KanbanServiceFactory.js";
 
-export function registerKanbanListTool(
-  pi: ExtensionAPI,
-  getService: () => KanbanService
-): void {
+export function registerKanbanListTool(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "kanban_list",
     label: "Kanban List",
@@ -30,6 +27,10 @@ Use this to:
       "Use kanban_show for detailed task information",
     ],
     parameters: {
+      board: {
+        type: "string" as const,
+        description: "Board name (defaults to current board)",
+      }.optional(),
       status: StringEnum(["triage", "todo", "ready", "running", "blocked", "done", "archived"] as const).optional(),
       assignee: { type: "string" as const, description: "Filter by assignee profile" }.optional(),
       tenant: { type: "string" as const, description: "Filter by tenant/project" }.optional(),
@@ -37,7 +38,7 @@ Use this to:
     },
     async execute(_toolCallId, params) {
       try {
-        const service = getService();
+        const service = getService(params.board);
         const tasks = service.listTasks({
           status: params.status,
           assignee: params.assignee,
@@ -52,6 +53,7 @@ Use this to:
           details: {
             tool: "kanban_list",
             count: tasks.length,
+            board: service.board,
             filters: {
               status: params.status || null,
               assignee: params.assignee || null,

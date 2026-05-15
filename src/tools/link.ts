@@ -1,38 +1,55 @@
 /**
- * kanban_link tool — Create parent→child dependency links
+ * kanban_link tool — Link tasks as parent/child dependencies
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { KanbanService } from "../service/KanbanService.js";
+import { getService } from "../service/KanbanServiceFactory.js";
 
-export function registerKanbanLinkTool(
-  pi: ExtensionAPI,
-  getService: () => KanbanService
-): void {
+export function registerKanbanLinkTool(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "kanban_link",
     label: "Kanban Link",
-    description: `Create a parent→child dependency link between tasks.
-The child task won't promote to 'ready' status until all parent 
-tasks are marked 'done'. This enables automatic sequencing of 
-related tasks.`,
+    description: `Create a parent-child dependency between two tasks.
+The child task will be blocked until the parent is completed.
+Useful for creating multi-step pipelines and task hierarchies.
+
+Use this to:
+- Create multi-step pipelines (research → analyze → report)
+- Set up task dependencies
+- Create subtasks under a parent
+- Track work breakdown`,
     promptSnippet: "Link kanban tasks",
     promptGuidelines: [
-      "Use kanban_link to create dependencies between tasks",
-      "The child won't run until all parents are done",
-      "Use when setting up pipelines or multi-step workflows",
+      "Use kanban_link to create task dependencies",
+      "Use kanban_link for multi-step pipelines",
+      "Child tasks wait for parent to complete",
     ],
     parameters: {
-      parent_id: { type: "string" as const, description: "Parent task ID (must already exist)" },
-      child_id: { type: "string" as const, description: "Child task ID (must already exist)" },
+      board: {
+        type: "string" as const,
+        description: "Board name (defaults to current board)",
+      }.optional(),
+      parent_id: {
+        type: "string" as const,
+        description: "Parent task ID (must complete before child)",
+      },
+      child_id: {
+        type: "string" as const,
+        description: "Child task ID (waits for parent)",
+      },
     },
     async execute(_toolCallId, params) {
       try {
-        const service = getService();
+        const service = getService(params.board);
 
         if (!(await service.isWriteAvailable())) {
           return {
-            content: [{ type: "text" as const, text: "Error: hermes CLI not found" }],
+            content: [
+              {
+                type: "text" as const,
+                text: "Error: hermes CLI not found. Write operations require the hermes CLI in PATH.",
+              },
+            ],
             details: { tool: "kanban_link", error: "hermes CLI not found" },
           };
         }
@@ -50,8 +67,19 @@ related tasks.`,
         }
 
         return {
-          content: [{ type: "text" as const, text: `Linked: ${params.parent_id} → ${params.child_id}` }],
-          details: { tool: "kanban_link", success: true, parent_id: params.parent_id, child_id: params.child_id },
+          content: [
+            {
+              type: "text" as const,
+              text: `Linked ${params.child_id} → ${params.parent_id}.\n${params.child_id} will wait for ${params.parent_id} to complete.`,
+            },
+          ],
+          details: {
+            tool: "kanban_link",
+            success: true,
+            parent_id: params.parent_id,
+            child_id: params.child_id,
+            board: service.board,
+          },
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
