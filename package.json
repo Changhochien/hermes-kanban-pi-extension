@@ -1,0 +1,43 @@
+{
+  "name": "@hermes/pi-kanban",
+  "version": "1.0.0",
+  "description": "Pi agent extension for Hermes multi-agent Kanban board integration",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "keywords": [
+    "pi-extension",
+    "pi-package",
+    "hermes",
+    "kanban",
+    "multi-agent"
+  ],
+  "pi": {
+    "extensions": ["./dist/index.js"],
+    "skills": ["./skills"]
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "workspace:*",
+    "@earendil-works/pi-ai": "workspace:*",
+    "@types/better-sqlite3": "^7.6.0",
+    "typescript": "^5.4.0"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=1.0.0",
+    "@earendil-works/pi-ai": ">=1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pi": ">=1.0.0"
+  },
+  "author": "",
+  "license": "MIT"
+}
