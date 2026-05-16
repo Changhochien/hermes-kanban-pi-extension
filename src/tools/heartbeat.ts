@@ -13,8 +13,11 @@ export default function registerHeartbeatTool(pi: ExtensionAPI): void {
       "Use during long-running operations to keep the task active. " +
       "If no task_id is provided, uses the HERMES_KANBAN_TASK environment variable.",
     parameters: {
-      board: { type: "string", description: "Board name (defaults to current board)" },
-      task_id: { type: "string", description: "Task ID to send heartbeat for (optional, uses HERMES_KANBAN_TASK if not set)" },
+      type: "object",
+      properties: {
+        board: { type: "string", description: "Board name (defaults to current board)" },
+        task_id: { type: "string", description: "Task ID to send heartbeat for (optional, uses HERMES_KANBAN_TASK if not set)" },
+      },
     },
     async execute(_toolCallId, params) {
       try {

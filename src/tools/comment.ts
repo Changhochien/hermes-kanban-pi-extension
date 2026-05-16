@@ -24,9 +24,12 @@ Use this to:
       "Use kanban_show to read existing comments",
     ],
     parameters: {
-      board: { type: "string", description: "Board name (defaults to current board)" },
-      task_id: { type: "string", description: "Task ID (t_<hex8>)" },
-      body: { type: "string", description: "Comment text (markdown supported)" },
+      type: "object",
+      properties: {
+        board: { type: "string", description: "Board name (defaults to current board)" },
+        task_id: { type: "string", description: "Task ID (t_<hex8>)" },
+        body: { type: "string", description: "Comment text (markdown supported)" },
+      },
     },
     async execute(_toolCallId, params) {
       try {

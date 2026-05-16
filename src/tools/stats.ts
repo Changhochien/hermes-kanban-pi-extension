@@ -24,7 +24,10 @@ Use this to:
       "Use kanban_board for detailed task listing",
     ],
     parameters: {
-      board: { type: "string", description: "Board name (defaults to current board)" },
+      type: "object",
+      properties: {
+        board: { type: "string", description: "Board name (defaults to current board)" },
+      },
     },
     async execute(_toolCallId, params) {
       try {

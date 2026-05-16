@@ -27,8 +27,11 @@ Use this to:
       "Use kanban_reclaim to take over stale tasks",
     ],
     parameters: {
-      board: { type: "string", description: "Board name (defaults to current board)" },
-      severity: { type: "string", enum: SEVERITIES, description: "Filter by severity" },
+      type: "object",
+      properties: {
+        board: { type: "string", description: "Board name (defaults to current board)" },
+        severity: { type: "string", enum: [...SEVERITIES], description: "Filter by severity" },
+      },
     },
     async execute(_toolCallId, params) {
       try {

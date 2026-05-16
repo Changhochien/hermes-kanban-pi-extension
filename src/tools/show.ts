@@ -25,8 +25,11 @@ Use this to:
       "Use kanban_list to find tasks first",
     ],
     parameters: {
-      board: { type: "string", description: "Board name (defaults to current board)" },
-      task_id: { type: "string", description: "Task ID (t_<hex8>)" },
+      type: "object",
+      properties: {
+        board: { type: "string", description: "Board name (defaults to current board)" },
+        task_id: { type: "string", description: "Task ID (t_<hex8>)" },
+      },
     },
     async execute(_toolCallId, params) {
       try {

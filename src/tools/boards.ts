@@ -12,7 +12,10 @@ export default function registerBoardsTool(pi: ExtensionAPI): void {
       "List all available Hermes Kanban boards. " +
       "Use this to discover boards before using kanban_switch or when specifying the board parameter. " +
       "Returns board slug, path, and task count for each board.",
-    parameters: {},
+    parameters: {
+      type: "object",
+      properties: {},
+    },
     async execute(_toolCallId, _params) {
       try {
         const service = getService();

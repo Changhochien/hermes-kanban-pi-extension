@@ -25,9 +25,12 @@ Use this to:
       "Use kanban_unblock when the block is resolved",
     ],
     parameters: {
-      board: { type: "string", description: "Board name (defaults to current board)" },
-      task_id: { type: "string", description: "Task ID (t_<hex8>)" },
-      reason: { type: "string", description: "Reason for blocking" },
+      type: "object",
+      properties: {
+        board: { type: "string", description: "Board name (defaults to current board)" },
+        task_id: { type: "string", description: "Task ID (t_<hex8>)" },
+        reason: { type: "string", description: "Reason for blocking" },
+      },
     },
     async execute(_toolCallId, params) {
       try {

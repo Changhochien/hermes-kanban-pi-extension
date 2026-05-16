@@ -27,7 +27,10 @@ export default function registerProfilesTool(pi: ExtensionAPI): void {
       "Use this to discover who you can assign tasks to. " +
       "The kanban assignee field references these profile names.",
     parameters: {
-      board: { type: "string", description: "Board name (defaults to current board)" },
+      type: "object",
+      properties: {
+        board: { type: "string", description: "Board name (defaults to current board)" },
+      },
     },
     async execute(_toolCallId, params) {
       try {

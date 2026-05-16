@@ -14,7 +14,10 @@ export default function registerWorkerContextTool(pi: ExtensionAPI): void {
       "Reads the HERMES_KANBAN_TASK environment variable and returns full task details. " +
       "Use this to understand what task you've been assigned to work on. " +
       "This information is also automatically injected at session start.",
-    parameters: {},
+    parameters: {
+      type: "object",
+      properties: {},
+    },
     async execute(_toolCallId, _params) {
       try {
         const service = getService();

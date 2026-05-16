@@ -28,11 +28,14 @@ Use this to:
       "Use kanban_show for detailed task information",
     ],
     parameters: {
-      board: { type: "string", description: "Board name (defaults to current board)" },
-      status: { type: "string", enum: STATUSES, description: "Filter by status" },
-      assignee: { type: "string", description: "Filter by assignee profile" },
-      tenant: { type: "string", description: "Filter by tenant/project" },
-      limit: { type: "integer", description: "Max results (default 50, max 200)" },
+      type: "object",
+      properties: {
+        board: { type: "string", description: "Board name (defaults to current board)" },
+        status: { type: "string", enum: [...STATUSES], description: "Filter by status" },
+        assignee: { type: "string", description: "Filter by assignee profile" },
+        tenant: { type: "string", description: "Filter by tenant/project" },
+        limit: { type: "integer", description: "Max results (default 50, max 200)" },
+      },
     },
     async execute(_toolCallId, params) {
       try {
